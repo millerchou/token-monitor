@@ -1,3 +1,5 @@
+> **个人本地版：** 此 fork 只启用 Claude/Codex 本地日志统计与公开价格、汇率更新。使用、构建和合并上游前请阅读 [LOCAL_ONLY.md](LOCAL_ONLY.md)。
+
 <p align="right">
    <a href="./README.md">EN</a> | <strong>简</strong> | <a href="./README.zh-TW.md">繁</a> | <a href="./README.ko.md">KO</a> | <a href="./README.ja.md">JA</a> | <a href="./README.pt-BR.md">PT</a>
 </p>

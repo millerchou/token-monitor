@@ -9,7 +9,11 @@ const { resolveElectronVersionOverride } = require('./electron-builder-version')
 // and Windows continue to use the package.json Electron version.
 const electronVersion = resolveElectronVersionOverride();
 
-module.exports = createBuilderConfig({
+// The fork's standard packaging commands must also preserve the local boundary.
+module.exports = packageJson.main === 'src/localOnly/main.js' ? {
+  ...require('./local-only-builder'),
+  ...(electronVersion ? { electronVersion } : {})
+} : createBuilderConfig({
   baseConfig: {
     ...packageJson.build,
     ...(electronVersion ? { electronVersion } : {})

@@ -26,6 +26,11 @@ const runtimeScripts = [
 
 test('runtime and packaging scripts explicitly ensure vendored tokscale', () => {
   for (const name of runtimeScripts) {
+    if (packageJson.main === 'src/localOnly/main.js' && ['agent', 'agent:once'].includes(name)) {
+      // The local edition cannot start an account-enabled headless agent.
+      assert.equal(packageJson.scripts[name], 'node scripts/local-only-disabled.js');
+      continue;
+    }
     assert.match(packageJson.scripts[name], /ensure:tokscale/, name);
   }
   assert.match(packageJson.scripts['pack:mac:widget'], /--platform=darwin-arm64/);

@@ -1,0 +1,9 @@
+{
+  "upstream": "Javis603/token-monitor",
+  "baseline": "050f98372d299cda0f48a7f02c19bf684bd55b6c",
+  "version": "0.68.0",
+  "privilegedUpstreamFiles": {
+    "src/shared/currency.js": "f2b6b8ec8d2404052b48d783a7309e72da1b268f9827ab22da366bdcb12782e6",
+    "src/shared/exchangeRates.js": "76326e6349978b0c9951d07af6d97252defb62f067f5ecb282e53cba45b85e4c"
+  }
+}

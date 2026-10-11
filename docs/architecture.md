@@ -14,7 +14,9 @@ Cross-runtime decisions that one subsystem can break without noticing. Each sect
 
 ## Entry points and the Worker boundary
 
-`src/electron/main.js` (widget), `src/agent/agent.js` (headless collector) and `src/hub/server.js` (Node Hub: `/api/ingest`, `/api/stats`, `/api/stats/stream`) share `src/shared/`. `worker/src/index.js` is a Cloudflare Worker Hub speaking the same protocol.
+**Personal local edition:** this fork starts `src/localOnly/main.js` and its own preload. It imports only the reviewed public-data helpers in the privileged process and runs usage collection in a separate macOS sandbox. Account, Hub, update and sync capabilities are not registered. Read [LOCAL_ONLY.md](../LOCAL_ONLY.md) for the enforced boundaries, validation and upstream merge procedure. The remaining sections describe the retained upstream components for maintenance.
+
+`src/electron/main.js` (upstream widget), `src/agent/agent.js` (headless collector) and `src/hub/server.js` (Node Hub: `/api/ingest`, `/api/stats`, `/api/stats/stream`) share `src/shared/`. `worker/src/index.js` is a Cloudflare Worker Hub speaking the same protocol.
 
 The device runtime that the widget and the agent run (`deviceRuntime.js`, `deviceState.js`, the usage runtime, host, worker and transform, and the usage archives) lives in `src/shared/usage/`. `src/shared/usage.js` beside it is the Hub-core usage model, not that directory's index: `require('./usage')` resolves the file, so never add a `usage/index.js`.
 

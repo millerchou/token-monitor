@@ -1,3 +1,5 @@
+> **Personal local edition:** This fork only enables local Claude/Codex statistics and public price/exchange-rate updates. Read [LOCAL_ONLY.md](LOCAL_ONLY.md) for its boundaries, build commands and upstream merge procedure.
+
 <p align="right">
    <strong>EN</strong> | <a href="./README.zh-CN.md">简</a> | <a href="./README.zh-TW.md">繁</a> | <a href="./README.ko.md">KO</a> | <a href="./README.ja.md">JA</a> | <a href="./README.pt-BR.md">PT</a>
 </p>
