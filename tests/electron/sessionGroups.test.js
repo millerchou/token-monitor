@@ -43,7 +43,8 @@ test('period switches keep the same group and return to Sessions when that group
   const noop = () => {};
   const start = source.indexOf("for (const tab of document.querySelectorAll('.tab'))");
   const end = source.indexOf('\nfor (const button of els.monthPeriodMenu', start);
-  vm.runInNewContext(source.slice(start, end), { state, document: { querySelectorAll: () => [tab] },
+  const slotMode = source.slice(source.indexOf('function monthSlotMode(value)'), source.indexOf('function syncPeriodTabs()'));
+  vm.runInNewContext(`${slotMode}\n${source.slice(start, end)}`, { state, document: { querySelectorAll: () => [tab] },
     fixedPeriodRangesApi: { slotForSelection: value => value, normalizeMonthMode: () => 'month', supportsBreakdown: () => true },
     captureBreakdownMotion: noop, setPeriod: value => { state.period = value; return true; }, syncPeriodTabs: noop,
     setPeriodMenuOpen: noop, sessionRowsForPeriod: rowsForPeriod, render: () => { renders += 1; }, animateBreakdownFrom: noop });

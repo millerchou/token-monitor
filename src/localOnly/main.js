@@ -141,7 +141,7 @@ async function runApp(options = {}) {
   function dashboardHistory() {
     const value = history || { daily: [], monthly: [] };
     return {
-      ...value, deviceHistories: [{ deviceId: 'local', hostname: 'Local', ...value, history: value }],
+      ...value, deviceHistories: [{ deviceId: 'local', hostname: 'Local', ...value, history: value, historyAvailable: Boolean(history) }],
       fixedPeriods: { historyTransportAvailable: Boolean(history) }
     };
   }
@@ -167,7 +167,7 @@ async function runApp(options = {}) {
   handle('tray:setIcons', () => true);
   handle('clipboard:write', (text) => { if (typeof text !== 'string' || text.length > 100000) throw new Error('Invalid clipboard text'); clipboard.writeText(text); return true; });
   handle('app:getInfo', () => ({
-    name: PRODUCT_NAME, version: `${APP_VERSION}-local.1`, platform: 'darwin',
+    name: PRODUCT_NAME, version: `${APP_VERSION}-local.2`, platform: 'darwin',
     localOnly: true, systemDarkUi: nativeTheme.shouldUseDarkColors,
     loginItemSupported: false, loginItemOpenAtLogin: false, macWidgetSupported: false
   }));

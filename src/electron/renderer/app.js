@@ -2748,7 +2748,8 @@ function buildFixedPeriodSourcesSnapshot() {
     historyEnabled: state.settings?.historyEnabled !== false,
     historyAvailable: meta.historyTransportAvailable === true,
     todayKey: fixedPeriodTodayKey(),
-    locale: currentCalendarLocale()
+    locale: currentCalendarLocale(),
+    weekStartsOn: state.settings?.localOnly ? 1 : undefined
   });
 }
 
@@ -5997,7 +5998,8 @@ function renderHomeSessionModule() {
   if (rows.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'home-module-empty';
-    empty.textContent = t('home.noSessions');
+    empty.textContent = t(state.settings?.localOnly && fixedPeriodRangesApi.isDerived(state.period)
+      ? 'periodRange.sessionUnavailable' : 'home.noSessions');
     body.append(empty);
     return module;
   }
@@ -8425,6 +8427,11 @@ async function refreshHubBuildStatus() {
   renderHubBuildStatus();
 }
 
+function monthSlotMode(value) {
+  const mode = fixedPeriodRangesApi.normalizeMonthMode(value);
+  return state.settings?.localOnly && mode === 'week' ? 'month' : mode;
+}
+
 function syncPeriodTabs() {
   const tabs = Array.from(document.querySelectorAll('.tab'));
   const activeSlot = fixedPeriodRangesApi.slotForSelection(state.period);
@@ -8437,8 +8444,8 @@ function syncPeriodTabs() {
   }
   if (els.monthPeriodTab) {
     const mode = activeSlot === 'month'
-      ? fixedPeriodRangesApi.normalizeMonthMode(state.period)
-      : fixedPeriodRangesApi.normalizeMonthMode(state.settings?.periodMonthMode);
+      ? monthSlotMode(state.period)
+      : monthSlotMode(state.settings?.periodMonthMode);
     els.monthPeriodTab.textContent = fixedPeriodRangesApi.displayLabel(mode);
     els.monthPeriodTab.dataset.period = mode;
   }
@@ -12049,7 +12056,7 @@ for (const tab of document.querySelectorAll('.tab')) {
     }
     setPeriodMenuOpen(false);
     const targetPeriod = slot === 'month'
-      ? fixedPeriodRangesApi.normalizeMonthMode(state.settings?.periodMonthMode)
+      ? monthSlotMode(state.settings?.periodMonthMode)
       : tab.dataset.period;
     const snapshot = captureBreakdownMotion();
     if (!setPeriod(targetPeriod)) return;

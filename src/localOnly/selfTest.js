@@ -31,9 +31,27 @@ async function runSelfTest(runApp, target) {
   for (const flag of ['credentialDenied', 'networkDenied', 'executionDenied']) assert.equal(controller.getState().isolation?.[flag], true, flag);
 
   const stats = structuredClone(require('./fixture-statistics.json'));
-  stats.updatedAt = new Date().toISOString();
-  for (const device of stats.devices) { device.updatedAt = stats.updatedAt; device.receivedAt = stats.updatedAt; }
-  controller.publishStats(stats, { daily: [{ date: stats.updatedAt.slice(0, 10), totalTokens: 100000, costUsd: 0.42 }], monthly: [] });
+  const now = new Date();
+  stats.updatedAt = now.toISOString();
+  const keyAt = (offset) => new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset)).toISOString().slice(0, 10);
+  const elapsedWeekDays = (now.getDay() + 6) % 7;
+  const todayKey = keyAt(0);
+  const weekStart = keyAt(-elapsedWeekDays);
+  for (const device of stats.devices) {
+    device.updatedAt = stats.updatedAt;
+    device.receivedAt = stats.updatedAt;
+    device.periodWindows = {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      today: { key: todayKey, endsAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString() }
+    };
+  }
+  const day = (date, tokens, cost) => ({ date, tokens, cost,
+    perClient: { claude: { tokens, cost } }, perModel: { 'claude-sonnet-4-6': { tokens, cost } } });
+  const daily = [day(keyAt(-elapsedWeekDays - 1), 900000, 90)];
+  for (let offset = -elapsedWeekDays; offset < 0; offset++) daily.push(day(keyAt(offset), 1000, 0.01));
+  // Today's stale historical row must be replaced by the live 100,000 tokens.
+  daily.push(day(todayKey, 1, 0));
+  controller.publishStats(stats, { daily, monthly: [] });
   await new Promise((resolve) => setTimeout(resolve, 1200));
   const rendered = await controller.win.webContents.executeJavaScript(`(async () => ({
     node: typeof require,
@@ -49,8 +67,34 @@ async function runSelfTest(runApp, target) {
   assert.equal(rendered.settings.limitsEnabled, false);
   assert.equal(rendered.totalTokens, 100000);
   assert.equal(rendered.tokensVisible, true, 'Fixture statistics are not visible');
-  const remoteBlocked = await controller.win.webContents.executeJavaScript(`fetch('https://chatgpt.com/backend-api/wham/usage').then(() => false, () => true)`);
+  const remoteBlocked = await controller.win.webContents.executeJavaScript(`fetch('https://token-monitor-network-probe.invalid/').then(() => false, () => true)`);
   assert.equal(remoteBlocked, true);
+  await controller.win.webContents.executeJavaScript(`document.getElementById('localWeekPeriodTab').click()`);
+  let week;
+  for (let tries = 0; tries < 80; tries++) {
+    week = await controller.win.webContents.executeJavaScript(`({
+      selection: state.period, status: state.fixedPeriodSnapshot?.status,
+      range: state.fixedPeriodSnapshot?.range, totalTokens: state.fixedPeriodSnapshot?.period?.totalTokens,
+      costUsd: state.fixedPeriodSnapshot?.period?.costUsd,
+      tabs: [...document.querySelectorAll('.tab')].map(tab => tab.textContent),
+      activeTabs: [...document.querySelectorAll('.tab.active')].map(tab => tab.textContent)
+    })`);
+    if (week.status === 'ready') break;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  assert.equal(week.selection, 'week');
+  assert.equal(week.status, 'ready', 'Weekly local history is unavailable');
+  assert.deepEqual(week.tabs, ['DAY', 'WEEK', 'MONTH', 'TOTAL']);
+  assert.deepEqual(week.activeTabs, ['WEEK']);
+  assert.deepEqual(week.range, { start: weekStart, end: todayKey });
+  assert.equal(week.totalTokens, 100000 + elapsedWeekDays * 1000);
+  assert.ok(Math.abs(week.costUsd - (0.42 + elapsedWeekDays * 0.01)) < 1e-9);
+  await controller.win.webContents.executeJavaScript(`window.tokenMonitor.updateSettings({periodMonthMode:'week'})`);
+  await controller.win.webContents.executeJavaScript(`document.getElementById('monthPeriodTab').click()`);
+  const monthSelection = await controller.win.webContents.executeJavaScript(`state.period`);
+  assert.equal(monthSelection, 'month', 'MONTH remains independently selectable after WEEK');
+  await controller.win.webContents.executeJavaScript(`document.getElementById('localWeekPeriodTab').click()`);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   const preferences = controller.win.webContents.getLastWebPreferences();
   assert.equal(preferences.sandbox, true);
   assert.equal(preferences.contextIsolation, true);
@@ -61,7 +105,7 @@ async function runSelfTest(runApp, target) {
     accountActionsDisabled: rendered.accountActionsDisabled, settingsCannotEnableAccounts: rendered.settingsCannotEnableAccounts,
     chromiumSandbox: preferences.sandbox,
     contextIsolation: preferences.contextIsolation, nodeIntegration: preferences.nodeIntegration,
-    totalTokens: 100000, errors: unexpected, output: directory };
+    totalTokens: 100000, week, monthSelection, errors: unexpected, output: directory };
   fs.writeFileSync(path.join(directory, 'result.json'), JSON.stringify(result, null, 2));
   assert.deepEqual(unexpected, []);
   console.log(JSON.stringify(result));

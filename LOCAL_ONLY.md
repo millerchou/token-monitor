@@ -2,12 +2,20 @@
 
 This fork is a macOS edition of Token Monitor for **local Claude/Codex log statistics, public model prices and public exchange rates**. It retains the upstream renderer and usage collector so their local features and fixes can be merged from upstream.
 
+The accepted requirement is normal application behavior: it must not proactively obtain/refresh account tokens or call Claude/Codex account, quota or inference APIs. Existing restrictions remain in place; this is not a claim that every hostile local-code or filesystem-tampering scenario is blocked. The 2026-10-11 review reproduced process-environment, symlink, hardlink and renderer WebRTC gaps; on 2026-10-12 the user accepted those limitations without requesting additional hardening.
+
+## Calendar week
+
+The local toolbar has independent **DAY / WEEK / MONTH / TOTAL** buttons. WEEK uses the machine's local calendar from **Monday 00:00 through now**, regardless of interface language or regional first-day conventions. It combines retained daily history with the current live day without counting today twice, including when the week crosses a month or year boundary. MONTH retains the upstream menu for other fixed ranges.
+
+The upstream daily history supports weekly totals, cost estimates and client/model breakdowns. It does not retain exact per-session/project attribution for this derived range; those detail views retain the upstream unavailable message rather than displaying all-time or monthly rows as weekly usage.
+
 ## What runs
 
 - `npm start` and the packaged app start `src/localOnly/main.js`. The upstream Electron account/sync/update composition root is not loaded or included in the local app.
 - Main only handles an explicit IPC allowlist. It does not load provider account modules, read provider environment variables, invoke Keychain helpers, register account endpoints, start a Hub, sync to iCloud/Discord, or check/download upstream application updates.
-- The renderer has Node integration off, Chromium sandboxing on, no network access and no file access outside application assets. Login/account actions have no backend handler. Existing account-list compatibility readouts return empty data in preload.
-- The collector runs separately under macOS Seatbelt. It can read `.claude/projects`, `.claude/transcripts`, `.codex/sessions` and `.codex/archived_sessions`. Those sources are read-only. Other user data and credential files are denied, including symlinks whose targets are outside the read allowlist. Keychain files/services are denied. Network access, including loopback, is denied. Only the pinned scanner and the collector's Node/Electron runtime may be executed.
+- The renderer has Node integration off, Chromium sandboxing on, ordinary URL requests blocked and no file access outside application assets. This does not disable every browser transport (the review reproduced WebRTC UDP). Login/account actions have no backend handler. Existing account-list compatibility readouts return empty data in preload.
+- The collector runs separately under macOS Seatbelt. It can read `.claude/projects`, `.claude/transcripts`, `.codex/sessions` and `.codex/archived_sessions`. Those sources are read-only. Direct credential-file reads and symlinks escaping the read allowlist are denied; this is not a guarantee against hardlinks or reading another process's environment. Keychain path/service denials are configured. Direct network access, including loopback TCP, is denied. Only the pinned scanner and the collector's Node/Electron runtime may be executed.
 - Each collector launch first checks a **fake** credential canary, a denied loopback connection and a denied extra executable. If isolation fails, collection stops; there is no unrestricted fallback. Actual provider credentials are never used for this check.
 - Collector environment variables are constructed from an allowlist. Provider tokens, `NODE_OPTIONS`, alternate provider homes and proxy credentials are not inherited. Provider settings and `.env` files are not imported.
 - The native scanner SHA-256 must match `scripts/vendor/tokscale.json`. It reads public-price caches written by main, and cannot update prices or contact providers itself.
@@ -16,7 +24,7 @@ Seatbelt is applied only to the collector, preserving Electron's own Chromium sa
 
 ## Allowed network requests
 
-Only `src/localOnly/publicData.js` makes application network requests. It uses Node HTTPS with fixed GET requests, fixed non-secret headers, bounded responses and **no redirects**. Neither renderer data nor local usage influences the requested URLs.
+Only `src/localOnly/publicData.js` intentionally makes network requests in the normal application flow. It uses Node HTTPS with fixed GET requests, fixed non-secret headers, bounded responses and **no redirects**. Neither renderer data nor local usage influences the requested URLs.
 
 | Purpose | Exact public resource |
 | --- | --- |

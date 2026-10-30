@@ -4,6 +4,22 @@
 // local composition root cannot implement. Backend restrictions are independent
 // of this presentation layer: unhiding an element never enables its endpoint.
 (() => {
+  // Keep WEEK independently selectable without replacing the upstream MONTH
+  // slot and its optional rolling ranges. This runs before app.js binds tabs.
+  const ranges = window.TokenMonitorFixedPeriodRanges;
+  window.TokenMonitorFixedPeriodRanges = {
+    ...ranges,
+    slotForSelection: (period) => period === 'week' ? 'week' : ranges.slotForSelection(period)
+  };
+  const weekTab = document.createElement('button');
+  weekTab.id = 'localWeekPeriodTab';
+  weekTab.type = 'button';
+  weekTab.className = 'tab';
+  weekTab.dataset.period = 'week';
+  weekTab.dataset.periodSlot = 'week';
+  weekTab.textContent = 'WEEK';
+  weekTab.title = '本周（周一 00:00 至今，本机时区）';
+  document.getElementById('monthPeriodTab').before(weekTab);
   const catalog = window.TokenMonitorClientCatalog;
   window.TokenMonitorClientCatalog = {
     ...catalog,
@@ -33,6 +49,9 @@
     [data-breakdown="limits"], [data-breakdown="status"], [data-breakdown="device"]
     { display: none !important; }
     .local-only-note { padding: 12px 16px; font: inherit; font-size: 12px; opacity: .8; }
+    .title-controls { flex-basis: 200px; width: 200px; min-width: 200px; }
+    .tabs { grid-template-columns: repeat(4, 1fr); }
+    .tab-indicator { width: calc((100% - 12px) / 4); }
   `;
   document.head.append(style);
   for (const element of document.querySelectorAll('.app-title-text, .app-title-measure')) element.textContent = 'Token Monitor · 本地';

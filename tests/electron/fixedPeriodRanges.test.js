@@ -44,6 +44,27 @@ function deviceSource({
   };
 }
 
+test('an explicit Monday week stays Monday across locales, Sunday, month and year boundaries', () => {
+  for (const locale of ['en-US', 'zh-CN', 'ar-SA']) {
+    for (const [todayKey, start] of [
+      ['2026-10-12', '2026-10-12'],
+      ['2026-10-11', '2026-10-05'],
+      ['2026-11-01', '2026-10-26'],
+      ['2027-01-01', '2026-12-28']
+    ]) {
+      assert.deepEqual(ranges.rangeForSelection('week', { todayKey, locale, weekStartsOn: 1 }), { start, end: todayKey });
+    }
+  }
+  const source = deviceSource({ deviceId: 'local', date: '2026-10-14', endsAt: '2026-10-15T00:00:00Z', todayTokens: 40,
+    history: [day('2026-10-11', 900), day('2026-10-12', 10), day('2026-10-13', 20), day('2026-10-14', 1)] });
+  const snapshot = ranges.fixedPeriodSnapshotFromDevices('week', [source], {
+    now: Date.parse('2026-10-14T12:00:00Z'), locale: 'en-US', weekStartsOn: 1, historyAvailable: true
+  });
+  assert.equal(snapshot.status, 'ready');
+  assert.deepEqual(snapshot.range, { start: '2026-10-12', end: '2026-10-14' });
+  assert.equal(snapshot.period.totalTokens, 70, 'exclude Sunday and replace stale today with live usage');
+});
+
 test('fixed ranges preserve missing-price counts across live today and multiple devices', () => {
   const source = deviceSource({ deviceId: 'a', todayTokens: 100 });
   source.periods.today = {
